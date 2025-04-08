@@ -16,53 +16,25 @@ export default class MainScene extends Phaser.Scene {
   private crowsDefeated: number = 0;
 
   // Import wizard assets
-  private wizardIdle = new URL(
-    "../assets/images/wizard/Wanderer Magican/Idle.png",
-    import.meta.url
-  ).href;
-  private wizardAttack = new URL(
-    "../assets/images/wizard/Wanderer Magican/Attack_1.png",
-    import.meta.url
-  ).href;
+  private wizardIdle = "assets/images/wizard/Wanderer Magican/Idle.png";
+  private wizardAttack = "assets/images/wizard/Wanderer Magican/Attack_1.png";
 
   // Import crow assets
-  private crowFly = new URL(
-    "../assets/images/crowpack_assets/crowpack_spritesheets/crow_fly_strip6.png",
-    import.meta.url
-  ).href;
-  private crowHurt = new URL(
-    "../assets/images/crowpack_assets/crowpack_spritesheets/crow_hurt_strip5.png",
-    import.meta.url
-  ).href;
+  private crowFly =
+    "assets/images/crowpack_assets/crowpack_spritesheets/crow_fly_strip6.png";
+  private crowHurt =
+    "assets/images/crowpack_assets/crowpack_spritesheets/crow_hurt_strip5.png";
 
   // Background layers
-  private background1 = new URL(
-    "../assets/images/level/Background1.png",
-    import.meta.url
-  ).href;
-  private background2 = new URL(
-    "../assets/images/level/Background2.png",
-    import.meta.url
-  ).href;
-  private background3 = new URL(
-    "../assets/images/level/Background3.png",
-    import.meta.url
-  ).href;
-  private background4 = new URL(
-    "../assets/images/level/Background4.png",
-    import.meta.url
-  ).href;
-  private background5 = new URL(
-    "../assets/images/level/Background5.png",
-    import.meta.url
-  ).href;
+  private background1 = "assets/images/level/Background1.png";
+  private background2 = "assets/images/level/Background2.png";
+  private background3 = "assets/images/level/Background3.png";
+  private background4 = "assets/images/level/Background4.png";
+  private background5 = "assets/images/level/Background5.png";
 
   // Add tilemap asset
-  private ledgeTilemap = new URL("../assets/ledge.tmj", import.meta.url).href;
-  private tilesImage = new URL(
-    "../assets/images/level/MainLevBuild.png",
-    import.meta.url
-  ).href;
+  private ledgeTilemap = "assets/ledge.tmj";
+  private tilesImage = "assets/images/level/MainLevBuild.png";
 
   private map!: Phaser.Tilemaps.Tilemap;
   private tileset!: Phaser.Tilemaps.Tileset;
@@ -85,12 +57,9 @@ export default class MainScene extends Phaser.Scene {
   private electricParticles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
 
   // Sound assets
-  private buttonSound = new URL(
-    "../assets/sounds/buttonpress.mp3",
-    import.meta.url
-  ).href;
-  private zapSound = new URL("../assets/sounds/zap.mp3", import.meta.url).href;
-  private bgMusic = new URL("../assets/sounds/music.mp3", import.meta.url).href;
+  private buttonSound = "assets/sounds/buttonpress.mp3";
+  private zapSound = "assets/sounds/zap.mp3";
+  private bgMusic = "assets/sounds/music.mp3";
 
   constructor() {
     super("main");
@@ -131,14 +100,10 @@ export default class MainScene extends Phaser.Scene {
     });
 
     // Load electric particle effect
-    this.load.spritesheet(
-      "electric",
-      new URL("../assets/images/particles/Electric.png", import.meta.url).href,
-      {
-        frameWidth: 96,
-        frameHeight: 96,
-      }
-    );
+    this.load.spritesheet("electric", "assets/images/particles/Electric.png", {
+      frameWidth: 96,
+      frameHeight: 96,
+    });
 
     // Load sound effects and music
     this.load.audio("buttonSound", this.buttonSound);
