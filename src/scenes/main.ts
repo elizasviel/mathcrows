@@ -387,7 +387,7 @@ export default class MainScene extends Phaser.Scene {
 
   update() {
     // Remove up/down movement code
-    const cursors = this.input.keyboard.createCursorKeys();
+    this.input.keyboard.createCursorKeys();
     this.player.setVelocityY(0);
 
     // Check for crows that have gone off screen
