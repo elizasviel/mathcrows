@@ -26,6 +26,7 @@ export default class MainScene extends Phaser.Scene {
   private background3 = "images/level/Background3.png";
   private background4 = "images/level/Background4.png";
   private background5 = "images/level/Background5.png";
+  private background6 = "images/level/Background6.png";
 
   // Add after other private properties
   private currentWave: number = 0;
@@ -76,7 +77,7 @@ export default class MainScene extends Phaser.Scene {
     this.load.image("background3", this.background3);
     this.load.image("background4", this.background4);
     this.load.image("background5", this.background5);
-
+    this.load.image("background6", this.background6);
     // Load the wizard sprite sheets with proper URLs
     this.load.spritesheet("wizard_idle", this.wizardIdle, {
       frameWidth: 128,
@@ -234,8 +235,7 @@ export default class MainScene extends Phaser.Scene {
     uiContainer.add([statsPanel]);
 
     // Enhanced instructions text with better styling - replace with bitmap text
-    const instructionsText =
-      "MATH CROWS\n\nSolve multiplication problems to defeat crows\nClick numbers on the numpad and Attack to defeat crows\n\nClick to start!";
+    const instructionsText = "MATH CROWS\n\nClick to start!";
 
     // Handle multiline text by splitting on newlines and creating multiple text objects
     const lines = instructionsText.split("\n");
@@ -250,7 +250,7 @@ export default class MainScene extends Phaser.Scene {
         line,
         0,
         index * lineHeight,
-        3
+        5
       );
       // Center each line
       lineText.setX(-lineText.width / 2);
@@ -739,7 +739,7 @@ export default class MainScene extends Phaser.Scene {
     createBackground("background3", 20, 0.2);
     createBackground("background4", 30, 0.3);
     createBackground("background5", 40, 0.4); // Highest background depth
-
+    createBackground("background6", 50, 0.5); // Highest background depth
     // Set default depth for game objects to be above all backgrounds
     this.player?.setDepth(50);
   }
