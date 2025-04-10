@@ -55,7 +55,7 @@ export default class MainScene extends Phaser.Scene {
     characterWidth: 32,
     characterHeight: 32,
     chars:
-      "^1234567890AaâBbCcDdEeFfGgHhIiJjKkLlMmNnÑñOoPpQqRrSsTtUuVvWwXxYyZz¡!¿?@^$&^^^^'^^,;.:/}{-=+x÷*^%^",
+      "^1234567890AaâBbCcDdEeFfGgHhIiJjKkLlMmNnÑñOoPpQqRrSsTtUuVvWwXxYyZz¡!¿?@^$&^^^^'^^,;.:/][()}{-=+x÷*^%^",
     //^ are unused characters
     spacing: { x: -10, y: 0 },
     startFrame: 7, // Skip the first 7 empty columns of characters
@@ -205,15 +205,33 @@ export default class MainScene extends Phaser.Scene {
     this.crows = this.physics.add.group();
 
     // Create a UI container for all HUD elements
-    const uiContainer = this.add.container(100, 0).setDepth(100);
-    const scorePanel = this.add.container(this.cameras.main.width - 360, 16);
-    const scoreBG = this.add.sprite(0, 240, "panels", "bottom_left_element");
-    scoreBG.setScale(3);
-    this.scoreText = this.createUpdatableBitmapText("Score:0", -230, 30, 3);
-    scorePanel.add([scoreBG, this.scoreText]);
+    const uiContainer = this.add.container(100, 100).setDepth(100);
 
-    // Add all panels to the UI container
-    uiContainer.add([scorePanel]);
+    // Create a single panel for score, wave and streak
+    const statsPanel = this.add.container(this.cameras.main.width - 360, 16);
+    const statsBG = this.add.sprite(0, 90, "panels", "bottom_left_element");
+    statsBG.setScale(3, 2); // Make it taller to fit all three stats
+
+    // Create all three text displays in the same panel
+    this.scoreText = this.createUpdatableBitmapText("Score:0", -230, -50, 3);
+    this.waveText = this.createUpdatableBitmapText("Wave:0", -230, 30, 3);
+    this.waveStreakText = this.createUpdatableBitmapText(
+      "Streak:0",
+      -230,
+      110,
+      3
+    );
+
+    // Add all elements to the panel
+    statsPanel.add([
+      statsBG,
+      this.scoreText,
+      this.waveText,
+      this.waveStreakText,
+    ]);
+
+    // Add panel to UI container
+    uiContainer.add([statsPanel]);
 
     // Enhanced instructions text with better styling - replace with bitmap text
     const instructionsText =
@@ -255,6 +273,8 @@ export default class MainScene extends Phaser.Scene {
     this.input.once("pointerdown", () => {
       instructionsContainer.destroy();
       this.createNumpad();
+      this.startNextWave();
+      this.sound.play("buttonSound", { volume: 0.5 });
     });
 
     // Add resize handler to keep UI in position
@@ -296,7 +316,7 @@ export default class MainScene extends Phaser.Scene {
     this.crowsInWave = Math.min(this.currentWave * 3, 50);
     this.crowsRemainingInWave = this.crowsInWave;
     this.isWaveActive = true;
-    this.waveText.setText(`Wave: ${this.currentWave}`);
+    this.waveText.setText(`Wave:${this.currentWave}`);
     this.missedAnswers = 0;
     this.waveStartTime = this.time.now;
 
@@ -352,10 +372,8 @@ export default class MainScene extends Phaser.Scene {
         // Update score
         const totalBonus = timeBonus + perfectBonus + waveBonus;
         this.score += totalBonus;
-        this.scoreText.setText(`Score: ${this.score}`);
-        this.waveStreakText.setText(
-          `Perfect Streak: ${this.perfectWaveStreak}`
-        );
+        this.scoreText.setText(`Score:${this.score}`);
+        this.waveStreakText.setText(`Streak:${this.perfectWaveStreak}`);
 
         // Show completion effects - button will be shown after text animations
         this.showWaveCompletionEffects(timeBonus, perfectBonus, waveBonus);
@@ -375,7 +393,7 @@ export default class MainScene extends Phaser.Scene {
     // Generate random multiplication problem (single digits)
     const num1 = Phaser.Math.Between(1, 9);
     const num2 = Phaser.Math.Between(1, 9);
-    const problem = `${num1} × ${num2} = ?`;
+    const problem = `${num1}x${num2}=?`;
     this.currentAnswer = num1 * num2;
 
     // Create crow at right side of screen with random y position
@@ -406,8 +424,7 @@ export default class MainScene extends Phaser.Scene {
     textBg.strokeRoundedRect(-68, -78, 136, 51, 14);
 
     // Replace the problem text with bitmap text
-    const textContainer = this.createBitmapText(problem, 0, -52, 1.2);
-    textContainer.setX(-textContainer.width / 2);
+    const textContainer = this.createBitmapText(problem, -80, -80, 2);
 
     // Add a subtle floating animation to the text
     this.tweens.add({
@@ -750,8 +767,12 @@ export default class MainScene extends Phaser.Scene {
 
     bonusTexts.forEach((textData, index) => {
       const yPos = this.cameras.main.height / 2 - 100 + index * 70;
-      const textContainer = this.createBitmapText(textData.text, 0, 0, 1.5);
-      textContainer.setX(-textContainer.width / 2);
+      const textContainer = this.createBitmapText(textData.text, 0, 0, 4.5); // Increased scale from 1.5 to 2.5
+
+      // Center the text horizontally by positioning at screen center
+      textContainer.setX(
+        this.cameras.main.width / 2 - textContainer.width / 2 - 500
+      );
       textContainer.setY(yPos);
       textContainer.setDepth(201);
 
@@ -788,14 +809,65 @@ export default class MainScene extends Phaser.Scene {
                 textContainer.destroy();
                 textsRemaining--;
 
+                // Create Next Wave button after all texts have faded
                 if (textsRemaining === 0) {
-                  //this.showNextWaveButton();
+                  this.createNextWaveButton();
                 }
               },
             });
           });
         },
       });
+    });
+  }
+
+  // Add this new method to create the Next Wave button
+  private createNextWaveButton() {
+    // Create button background
+
+    const buttonText = this.createBitmapText(
+      "CLICK TO START NEXT WAVE",
+      this.cameras.main.width / 2 - 700,
+      this.cameras.main.height / 2 - 100,
+      4
+    );
+
+    // Make button interactive
+    buttonText.setInteractive();
+
+    // Add hover effects
+    buttonText.on("pointerover", () => {
+      buttonText.setScale(4.2);
+      this.tweens.add({
+        targets: [buttonText],
+        alpha: 0.8,
+        duration: 100,
+      });
+    });
+
+    buttonText.on("pointerout", () => {
+      buttonText.setScale(4);
+      this.tweens.add({
+        targets: [buttonText],
+        alpha: 1,
+        duration: 100,
+      });
+    });
+
+    this.input.once("pointerdown", () => {
+      buttonText.destroy();
+      this.startNextWave();
+      this.sound.play("buttonSound", { volume: 0.5 });
+    });
+
+    // Add entrance animation
+    buttonText.setAlpha(0);
+    this.tweens.add({
+      targets: [buttonText],
+      alpha: 1,
+      scale: { from: 0.5, to: buttonText.scale },
+      duration: 500,
+      ease: "Back.easeOut",
     });
   }
 
@@ -911,8 +983,9 @@ export default class MainScene extends Phaser.Scene {
           .setOrigin(0, 0);
 
         container.add(charSprite);
+        // Match the spacing from createBitmapText (0.68 instead of 0.5)
         xOffset +=
-          (this.bitmapFontConfig.characterWidth * 0.5 +
+          (this.bitmapFontConfig.characterWidth * 0.68 +
             this.bitmapFontConfig.spacing.x) *
           scale;
       }
