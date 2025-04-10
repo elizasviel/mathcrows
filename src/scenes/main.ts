@@ -33,7 +33,6 @@ export default class MainScene extends Phaser.Scene {
   private crowsInWave: number = 0;
   private crowsRemainingInWave: number = 0;
   private waveText!: Phaser.GameObjects.Text;
-  private nextWaveButton!: Phaser.GameObjects.Container;
   private isWaveActive: boolean = false;
 
   // Add these properties to the class
@@ -694,22 +693,15 @@ export default class MainScene extends Phaser.Scene {
       crow.setVelocityX(0);
     });
 
-    // Display game over text
-    this.add
-      .text(
-        this.cameras.main.width / 2,
-        this.cameras.main.height / 2,
-        `GAME OVER\n\nFinal Score: ${this.score}\nCrows Defeated: ${this.crowsDefeated}\n\nClick to restart`,
-        {
-          fontSize: "48px",
-          color: "#fff",
-          stroke: "#000",
-          strokeThickness: 5,
-          align: "center",
-        }
-      )
-      .setOrigin(0.5)
-      .setDepth(100);
+    // Display game over text using bitmap text
+    const gameOverText = `GAME OVER\n\nFinal Score: ${this.score}\nCrows Defeated: ${this.crowsDefeated}\n\nClick to restart`;
+    const textContainer = this.createMultilineBitmapText(
+      gameOverText,
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      4
+    );
+    textContainer.setDepth(100);
 
     // Restart game on click
     this.input.once("pointerdown", () => {
