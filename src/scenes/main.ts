@@ -535,9 +535,9 @@ export default class MainScene extends Phaser.Scene {
 
         // Add click handler based on button value
         button.on("pointerdown", () => {
-          if (buttonValue === "✓") {
+          if (buttonValue === ">") {
             this.checkAnswer();
-          } else if (buttonValue === "C") {
+          } else if (buttonValue === "<") {
             this.onNumpadDelete();
           } else {
             this.onNumpadButtonClick(buttonValue);
@@ -563,7 +563,7 @@ export default class MainScene extends Phaser.Scene {
     // Play button sound
     this.sound.play("buttonSound", { volume: 0.5 });
 
-    if (this.answerInput.length < 3) {
+    if (this.answerInput.length < 8) {
       this.answerInput += value;
       this.numpadDisplay.setText(this.answerInput);
     }
