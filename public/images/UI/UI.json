@@ -1,0 +1,12 @@
+{
+    "frames": {
+      "bottom_left_element": {
+        "frame": {"x": 0, "y": 225, "w": 160, "h": 159},
+        "rotated": false,
+        "trimmed": false
+      },
+      "other_element": {
+        "frame": {"x": 100, "y": 200, "w": 120, "h": 50}
+      }
+    }
+  }

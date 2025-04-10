@@ -1,10 +1,9 @@
-import { CapacitorConfig } from '@capacitor/cli';
+import { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'com.example.app',
-  appName: 'phaser-project-template',
-  webDir: 'dist',
-  bundledWebRuntime: false
+  appId: "com.mathcrows.app",
+  appName: "Math Crows",
+  webDir: "dist",
 };
 
 export default config;

@@ -10,35 +10,22 @@ export default class MainScene extends Phaser.Scene {
   private timerEvents: Phaser.Time.TimerEvent[] = [];
   private numpad!: Phaser.GameObjects.Container;
   private numpadDisplay!: Phaser.GameObjects.Text;
-  private numpadTitle!: Phaser.GameObjects.Text;
-
-  // Removed level system variables
   private crowsDefeated: number = 0;
 
-  // Import wizard assets
-  private wizardIdle = "assets/images/wizard/Wanderer Magican/Idle.png";
-  private wizardAttack = "assets/images/wizard/Wanderer Magican/Attack_1.png";
+  // Import wizard
+  private wizardIdle = "images/wizard/Wanderer Magican/Idle.png";
+  private wizardAttack = "images/wizard/Wanderer Magican/Attack_1.png";
 
   // Import crow assets
-  private crowFly =
-    "assets/images/crowpack_assets/crowpack_spritesheets/crow_fly_strip6.png";
-  private crowHurt =
-    "assets/images/crowpack_assets/crowpack_spritesheets/crow_hurt_strip5.png";
+  private crowFly = "images/crows/crow_fly_strip6.png";
+  private crowHurt = "images/crows/crow_hurt_strip5.png";
 
   // Background layers
-  private background1 = "assets/images/level/Background1.png";
-  private background2 = "assets/images/level/Background2.png";
-  private background3 = "assets/images/level/Background3.png";
-  private background4 = "assets/images/level/Background4.png";
-  private background5 = "assets/images/level/Background5.png";
-
-  // Add tilemap asset
-  private ledgeTilemap = "assets/ledge.tmj";
-  private tilesImage = "assets/images/level/MainLevBuild.png";
-
-  private map!: Phaser.Tilemaps.Tilemap;
-  private tileset!: Phaser.Tilemaps.Tileset;
-  private layer!: Phaser.Tilemaps.TilemapLayer;
+  private background1 = "images/level/Background1.png";
+  private background2 = "images/level/Background2.png";
+  private background3 = "images/level/Background3.png";
+  private background4 = "images/level/Background4.png";
+  private background5 = "images/level/Background5.png";
 
   // Add after other private properties
   private currentWave: number = 0;
@@ -57,9 +44,26 @@ export default class MainScene extends Phaser.Scene {
   private electricParticles!: Phaser.GameObjects.Particles.ParticleEmitterManager;
 
   // Sound assets
-  private buttonSound = "assets/sounds/buttonpress.mp3";
-  private zapSound = "assets/sounds/zap.mp3";
-  private bgMusic = "assets/sounds/music.mp3";
+  private buttonSound = "sounds/buttonpress.mp3";
+  private zapSound = "sounds/zap.mp3";
+  private bgMusic = "sounds/music.mp3";
+
+  // Bitmap font properties
+  private bitmapFontTexture = "images/UI/goldFont.png"; // Placeholder URL
+  private bitmapFontMap: { [key: string]: number } = {};
+  private bitmapFontConfig = {
+    characterWidth: 32,
+    characterHeight: 32,
+    chars:
+      "^1234567890AaâBbCcDdEeFfGgHhIiJjKkLlMmNnÑñOoPpQqRrSsTtUuVvWwXxYyZz¡!¿?@^$&^^^^'^^,;.:/}{-=+x÷*^%^",
+    //^ are unused characters
+    spacing: { x: -10, y: 0 },
+    startFrame: 7, // Skip the first 7 empty columns of characters
+  };
+
+  // UI assets
+  private icons = "images/UI/UI_Platinum_C_NoBorder.png";
+  private UI = "images/UI/platUI.png";
 
   constructor() {
     super("main");
@@ -72,10 +76,6 @@ export default class MainScene extends Phaser.Scene {
     this.load.image("background3", this.background3);
     this.load.image("background4", this.background4);
     this.load.image("background5", this.background5);
-
-    // Load tilemap and tileset
-    this.load.tilemapTiledJSON("ledge", this.ledgeTilemap);
-    this.load.image("tiles", this.tilesImage);
 
     // Load the wizard sprite sheets with proper URLs
     this.load.spritesheet("wizard_idle", this.wizardIdle, {
@@ -100,7 +100,7 @@ export default class MainScene extends Phaser.Scene {
     });
 
     // Load electric particle effect
-    this.load.spritesheet("electric", "assets/images/particles/Electric.png", {
+    this.load.spritesheet("electric", "images/particles/Electric.png", {
       frameWidth: 96,
       frameHeight: 96,
     });
@@ -109,18 +109,31 @@ export default class MainScene extends Phaser.Scene {
     this.load.audio("buttonSound", this.buttonSound);
     this.load.audio("zapSound", this.zapSound);
     this.load.audio("bgMusic", this.bgMusic);
+
+    // Load bitmap font spritesheet directly with frame config
+    this.load.spritesheet("bitmapFont", this.bitmapFontTexture, {
+      frameWidth: this.bitmapFontConfig.characterWidth,
+      frameHeight: this.bitmapFontConfig.characterHeight,
+    });
+
+    this.load.atlas("panels", this.UI, "images/UI/UI.json");
+
+    this.load.spritesheet("icons", this.icons, {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
   }
 
   create() {
     // Set up layered backgrounds with different depths
     this.setupBackgrounds();
 
-    // Start background music
+    // Start background musics
     const music = this.sound.add("bgMusic", { loop: true, volume: 0.5 });
     music.play();
 
-    // Create tilemap
-    this.setupTilemap();
+    // Setup bitmap font before we need to use it
+    this.setupBitmapFont();
 
     // Create animation for wizard idle
     this.anims.create({
@@ -192,131 +205,45 @@ export default class MainScene extends Phaser.Scene {
     this.crows = this.physics.add.group();
 
     // Create a UI container for all HUD elements
-    const uiContainer = this.add.container(0, 0).setDepth(100);
-
-    // Enhanced score display in top right with modern styling
+    const uiContainer = this.add.container(100, 0).setDepth(100);
     const scorePanel = this.add.container(this.cameras.main.width - 360, 16);
-
-    // Create a gradient background for score
-    const scoreBg = this.add.graphics();
-    scoreBg.fillGradientStyle(0x2c3e50, 0x2c3e50, 0x34495e, 0x34495e, 1);
-    scoreBg.fillRoundedRect(0, 0, 340, 70, 15);
-    scoreBg.lineStyle(3, 0x3498db);
-    scoreBg.strokeRoundedRect(0, 0, 340, 70, 15);
-
-    // Add glow effect to score
-    const scoreGlow = this.add.graphics();
-    scoreGlow.lineStyle(2, 0x3498db, 0.3);
-    scoreGlow.strokeRoundedRect(-2, -2, 344, 74, 16);
-
-    this.scoreText = this.add.text(20, 15, "Score: 0", {
-      fontSize: "42px",
-      fontFamily: "Arial, sans-serif",
-      color: "#ecf0f1",
-      stroke: "#2c3e50",
-      strokeThickness: 4,
-      shadow: {
-        offsetX: 2,
-        offsetY: 2,
-        color: "#000",
-        blur: 5,
-        fill: true,
-      },
-    });
-
-    scorePanel.add([scoreGlow, scoreBg, this.scoreText]);
-
-    // Enhanced wave display with modern styling
-    const wavePanel = this.add.container(this.cameras.main.width - 360, 96);
-
-    const waveBg = this.add.graphics();
-    waveBg.fillGradientStyle(0x2c3e50, 0x2c3e50, 0x34495e, 0x34495e, 1);
-    waveBg.fillRoundedRect(0, 0, 340, 70, 15);
-    waveBg.lineStyle(3, 0x9b59b6);
-    waveBg.strokeRoundedRect(0, 0, 340, 70, 15);
-
-    const waveGlow = this.add.graphics();
-    waveGlow.lineStyle(2, 0x9b59b6, 0.3);
-    waveGlow.strokeRoundedRect(-2, -2, 344, 74, 16);
-
-    this.waveText = this.add.text(20, 15, "Wave: 0", {
-      fontSize: "42px",
-      fontFamily: "Arial, sans-serif",
-      color: "#ecf0f1",
-      stroke: "#2c3e50",
-      strokeThickness: 4,
-      shadow: {
-        offsetX: 2,
-        offsetY: 2,
-        color: "#000",
-        blur: 5,
-        fill: true,
-      },
-    });
-
-    wavePanel.add([waveGlow, waveBg, this.waveText]);
-
-    // Enhanced streak display
-    const streakPanel = this.add.container(this.cameras.main.width - 360, 176);
-
-    const streakBg = this.add.graphics();
-    streakBg.fillGradientStyle(0x2c3e50, 0x2c3e50, 0x34495e, 0x34495e, 1);
-    streakBg.fillRoundedRect(0, 0, 340, 70, 15);
-    streakBg.lineStyle(3, 0xf1c40f);
-    streakBg.strokeRoundedRect(0, 0, 340, 70, 15);
-
-    const streakGlow = this.add.graphics();
-    streakGlow.lineStyle(2, 0xf1c40f, 0.3);
-    streakGlow.strokeRoundedRect(-2, -2, 344, 74, 16);
-
-    this.waveStreakText = this.add.text(20, 15, "Perfect Streak: 0", {
-      fontSize: "42px",
-      fontFamily: "Arial, sans-serif",
-      color: "#ecf0f1",
-      stroke: "#2c3e50",
-      strokeThickness: 4,
-      shadow: {
-        offsetX: 2,
-        offsetY: 2,
-        color: "#000",
-        blur: 5,
-        fill: true,
-      },
-    });
-
-    streakPanel.add([streakGlow, streakBg, this.waveStreakText]);
+    const scoreBG = this.add.sprite(0, 240, "panels", "bottom_left_element");
+    scoreBG.setScale(3);
+    this.scoreText = this.createUpdatableBitmapText("Score:0", -230, 30, 3);
+    scorePanel.add([scoreBG, this.scoreText]);
 
     // Add all panels to the UI container
-    uiContainer.add([scorePanel, wavePanel, streakPanel]);
+    uiContainer.add([scorePanel]);
 
-    // Enhanced instructions text with better styling
-    const instructions = this.add
-      .text(
-        this.cameras.main.width / 2,
-        this.cameras.main.height / 2,
-        "Math Crows!\n\nSolve multiplication problems to defeat crows\nClick numbers on the numpad and Attack to defeat crows\n\nClick to start!",
-        {
-          fontSize: "32px",
-          fontFamily: "Arial, sans-serif",
-          color: "#ecf0f1",
-          stroke: "#2c3e50",
-          strokeThickness: 6,
-          align: "center",
-          shadow: {
-            offsetX: 3,
-            offsetY: 3,
-            color: "#000",
-            blur: 8,
-            fill: true,
-          },
-        }
-      )
-      .setOrigin(0.5)
-      .setDepth(100);
+    // Enhanced instructions text with better styling - replace with bitmap text
+    const instructionsText =
+      "MATH CROWS\n\nSolve multiplication problems to defeat crows\nClick numbers on the numpad and Attack to defeat crows\n\nClick to start!";
+
+    // Handle multiline text by splitting on newlines and creating multiple text objects
+    const lines = instructionsText.split("\n");
+    const lineHeight = 75; // Adjust based on your font size
+    const instructionsContainer = this.add.container(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2
+    );
+
+    lines.forEach((line, index) => {
+      const lineText = this.createMultilineBitmapText(
+        line,
+        0,
+        index * lineHeight,
+        3
+      );
+      // Center each line
+      lineText.setX(-lineText.width / 2);
+      instructionsContainer.add(lineText);
+    });
+
+    instructionsContainer.setDepth(100);
 
     // Add subtle floating animation to instructions
     this.tweens.add({
-      targets: instructions,
+      targets: instructionsContainer,
       y: "+=20",
       duration: 2000,
       yoyo: true,
@@ -324,14 +251,10 @@ export default class MainScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
 
-    // Create next wave button (after instructions)
-    this.createNextWaveButton();
-
     // Start game on click
     this.input.once("pointerdown", () => {
-      instructions.destroy();
+      instructionsContainer.destroy();
       this.createNumpad();
-      this.showNextWaveButton();
     });
 
     // Add resize handler to keep UI in position
@@ -351,11 +274,6 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update() {
-    // Remove up/down movement code
-    this.input.keyboard.createCursorKeys();
-    this.player.setVelocityY(0);
-
-    // Check for crows that have gone off screen
     this.crows.getChildren().forEach((crow: any) => {
       // Update text position to follow crow
       const container = crow.getData("container");
@@ -371,104 +289,6 @@ export default class MainScene extends Phaser.Scene {
         crow.destroy();
       }
     });
-
-    // Update numpad position to follow player - moved higher up
-    if (this.numpad) {
-      this.numpad.setPosition(this.player.x, this.player.y - 300);
-    }
-  }
-
-  private createNextWaveButton() {
-    const button = this.add.container(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2
-    );
-
-    const buttonWidth = 360;
-    const buttonHeight = 90;
-
-    // Create gradient background
-    const background = this.add.graphics();
-    background.fillGradientStyle(0x3498db, 0x3498db, 0x2980b9, 0x2980b9, 1);
-    background.fillRoundedRect(
-      -buttonWidth / 2,
-      -buttonHeight / 2,
-      buttonWidth,
-      buttonHeight,
-      20
-    );
-    background.lineStyle(4, 0x74b9ff);
-    background.strokeRoundedRect(
-      -buttonWidth / 2,
-      -buttonHeight / 2,
-      buttonWidth,
-      buttonHeight,
-      20
-    );
-
-    const text = this.add
-      .text(0, 0, "Start Wave 1", {
-        fontSize: "44px",
-        fontFamily: "Arial, sans-serif",
-        color: "#fff",
-        stroke: "#2c3e50",
-        strokeThickness: 4,
-        shadow: {
-          offsetX: 2,
-          offsetY: 2,
-          color: "#000",
-          blur: 5,
-          fill: true,
-        },
-      })
-      .setOrigin(0.5);
-
-    button.add([background, text]);
-    button.setDepth(100);
-
-    // Add hover effects
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(
-        -buttonWidth / 2,
-        -buttonHeight / 2,
-        buttonWidth,
-        buttonHeight
-      ),
-      Phaser.Geom.Rectangle.Contains
-    );
-
-    button.on("pointerover", () => {
-      this.tweens.add({
-        targets: button,
-        scaleX: 1.05,
-        scaleY: 1.05,
-        duration: 100,
-      });
-    });
-
-    button.on("pointerout", () => {
-      this.tweens.add({
-        targets: button,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 100,
-      });
-    });
-
-    button.on("pointerdown", () => {
-      this.startNextWave();
-      button.setVisible(false);
-    });
-
-    this.nextWaveButton = button;
-    this.nextWaveButton.setVisible(false);
-  }
-
-  private showNextWaveButton() {
-    const nextWaveNum = this.currentWave + 1;
-    const buttonText = this.nextWaveButton.getAt(1) as Phaser.GameObjects.Text;
-    buttonText.setText(`Start Wave ${nextWaveNum}`);
-    this.nextWaveButton.setVisible(true);
   }
 
   private startNextWave() {
@@ -585,28 +405,13 @@ export default class MainScene extends Phaser.Scene {
     textBg.lineStyle(2, 0xffffff, 0.6);
     textBg.strokeRoundedRect(-68, -78, 136, 51, 14);
 
-    // Add improved problem text to crow - positioned higher
-    const text = this.add.text(0, -52, problem, {
-      fontSize: "28px",
-      fontFamily: "Arial, sans-serif",
-      color: "#ffffff",
-      stroke: "#000000",
-      strokeThickness: 4,
-      shadow: {
-        offsetX: 2,
-        offsetY: 2,
-        color: "#000",
-        blur: 5,
-        fill: true,
-      },
-      align: "center",
-    });
-    text.setDepth(55);
-    text.setOrigin(0.5);
+    // Replace the problem text with bitmap text
+    const textContainer = this.createBitmapText(problem, 0, -52, 1.2);
+    textContainer.setX(-textContainer.width / 2);
 
     // Add a subtle floating animation to the text
     this.tweens.add({
-      targets: text,
+      targets: textContainer,
       y: "-=4",
       duration: 1000,
       ease: "Sine.easeInOut",
@@ -620,11 +425,11 @@ export default class MainScene extends Phaser.Scene {
 
     // Container for problem display with background - positioned higher
     const container = this.add
-      .container(crow.x, crow.y + problemOffset, [textBg, text])
+      .container(crow.x, crow.y + problemOffset, [textBg, textContainer])
       .setDepth(55);
 
     // Update the container position in update
-    crow.setData("problemText", text);
+    crow.setData("problemText", textContainer);
     crow.setData("textBg", textBg);
     crow.setData("container", container);
     crow.setData("problem", problem);
@@ -659,128 +464,97 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private createNumpad() {
-    // Define colors for the UI
-    const COLOR_PRIMARY = 0x4e342e;
-    const COLOR_LIGHT = 0x7b5e57;
-    const COLOR_ATTACK = 0x2ecc71;
-    const COLOR_BG = 0x222222;
-
     // Create the main container for the numpad - moved higher up
     this.numpad = this.add.container(this.player.x, this.player.y - 300);
     this.numpad.setDepth(100);
 
-    // Button size and spacing - increased for larger calculator
-    const buttonSize = { width: 62, height: 62 };
-    const buttonSpace = 12;
-    // Calculate the width of a row (3 buttons + 2 spaces)
-    const rowWidth = buttonSize.width * 3 + buttonSpace * 2;
-
-    // Add main background for the entire calculator - expanded with more bottom padding
-    const mainBg = this.add
-      .rectangle(0, 0, 275, 475, COLOR_BG, 0.85)
-      .setStrokeStyle(4, COLOR_LIGHT)
-      .setOrigin(0.5);
+    // Add main background for the entire calculator - expanded to fit all buttons
+    const mainBg = this.add.sprite(0, -50, "panels", "bottom_left_element");
+    mainBg.setScale(2, 3.5);
     this.numpad.add(mainBg);
 
-    // Create display for input - match width to row of buttons
-    this.numpadDisplay = this.add
-      .text(0, -130, "", {
-        fontSize: "38px",
-        fontFamily: "Courier, monospace",
-        color: "#f5f6fa",
-        backgroundColor: "#2c3e50",
-        padding: { x: 15, y: 12 },
-        align: "center",
-        fixedWidth: rowWidth,
-      })
-      .setOrigin(0.5);
+    // Replace the numpad display with bitmap text
+    const numpadDisplayContainer = this.createBitmapText("", -120, -180, 2);
+    this.numpadDisplay = {
+      setText: (newText: string) => {
+        numpadDisplayContainer.removeAll(true);
+        const newTextContainer = this.createBitmapText(newText, 0, 0, 2);
+        // Center the text
+        newTextContainer.setX(-newTextContainer.width / 2);
+        newTextContainer
+          .getAll()
+          .forEach((child) => numpadDisplayContainer.add(child));
+      },
+    } as Phaser.GameObjects.Text;
 
-    // Create a title for the calculator
-    this.numpadTitle = this.add
-      .text(0, -185, "MAGIC CALCULATOR", {
-        fontSize: "22px",
-        fontFamily: "Arial, sans-serif",
-        color: "#dff9fb",
-        stroke: "#0a3d62",
-        strokeThickness: 3,
-        align: "center",
-      })
-      .setOrigin(0.5);
+    // Replace the numpad title with bitmap text
+    const numpadTitleContainer = this.createBitmapText("INPUT", -110, -300, 3);
 
     // Add the display and title to the container
-    this.numpad.add([this.numpadDisplay, this.numpadTitle]);
+    this.numpad.add([numpadDisplayContainer, numpadTitleContainer]);
 
-    // Create buttons directly using Phaser
-    const startX = -buttonSize.width - buttonSpace;
-    const startY = -50; // Move buttons up to fit within the background
+    // Create numpad buttons with all digits 1-9
+    const buttonWidth = 62;
+    const buttonSpacing = 12;
+    const totalButtonWidth = buttonWidth + buttonSpacing;
 
-    // Create the numpad grid (3x4)
-    const buttonLabels = [
+    // Define the new numpad layout with all 9 digits
+    const numpadLayout = [
       ["1", "2", "3"],
       ["4", "5", "6"],
       ["7", "8", "9"],
-      ["<", "0", "↵"], // Changed ATTACK to ↵ (enter icon)
+      ["<", "0", ">"],
     ];
 
-    // Create all buttons
-    for (let row = 0; row < 4; row++) {
-      for (let col = 0; col < 3; col++) {
-        const x = startX + col * (buttonSize.width + buttonSpace);
-        const y = startY + row * (buttonSize.height + buttonSpace);
-        const label = buttonLabels[row][col];
+    // Create all buttons according to layout
+    for (let row = 0; row < numpadLayout.length; row++) {
+      for (let col = 0; col < numpadLayout[row].length; col++) {
+        const x = -totalButtonWidth + col * totalButtonWidth;
+        const y = -80 + row * totalButtonWidth;
+        const buttonValue = numpadLayout[row][col];
 
-        // Choose background color based on button type
-        let bgColor = COLOR_PRIMARY;
-        if (label === "↵") {
-          bgColor = COLOR_ATTACK;
-        } else if (label === "<") {
-          bgColor = 0xe74c3c; // Red for delete
+        // Frame index for the icon (1-9 for numbers, 3 for special buttons)
+        let frameIndex = 0; // Default frame
+
+        // For digit buttons 1-9, use the corresponding sprite frame
+        if (buttonValue >= "1" && buttonValue <= "9") {
+          frameIndex = parseInt(buttonValue);
+        } else if (buttonValue === "0") {
+          frameIndex = 10; // Assuming 0 is at index 10
+        } else if (buttonValue === "<") {
+          frameIndex = 101;
+        } else if (buttonValue === ">") {
+          frameIndex = 102;
         }
 
-        // Create button background - all keys same size
-        const button = this.add
-          .rectangle(x, y, buttonSize.width, buttonSize.height, bgColor)
-          .setStrokeStyle(3, COLOR_LIGHT);
-
-        // Create button text
-        const text = this.add
-          .text(x, y, label, {
-            fontSize: label === "↵" ? "35px" : "30px",
-            color: "#ffffff",
-            fontStyle: "bold",
-          })
-          .setOrigin(0.5);
+        // Create button background with the correct icon
+        const button = this.add.sprite(x, y, "icons", frameIndex).setScale(2);
 
         // Make button interactive
         button.setInteractive();
 
-        // Add click handler
+        // Add click handler based on button value
         button.on("pointerdown", () => {
-          if (label === "↵") {
+          if (buttonValue === "✓") {
             this.checkAnswer();
-          } else if (label === "<") {
+          } else if (buttonValue === "C") {
             this.onNumpadDelete();
           } else {
-            this.onNumpadButtonClick(label);
+            this.onNumpadButtonClick(buttonValue);
           }
         });
 
         // Add visual feedback
         button.on("pointerover", () => {
-          button.fillColor = Phaser.Display.Color.GetColor32(
-            ((bgColor >> 16) & 0xff) + 20,
-            ((bgColor >> 8) & 0xff) + 20,
-            (bgColor & 0xff) + 20,
-            1
-          );
+          button.alpha = 0.8;
         });
 
         button.on("pointerout", () => {
-          button.fillColor = bgColor;
+          button.alpha = 1;
         });
 
         // Add to container
-        this.numpad.add([button, text]);
+        this.numpad.add(button);
       }
     }
   }
@@ -953,26 +727,6 @@ export default class MainScene extends Phaser.Scene {
     this.player?.setDepth(50);
   }
 
-  private setupTilemap() {
-    // Create tilemap from loaded Tiled JSON data
-    this.map = this.make.tilemap({ key: "ledge" });
-
-    // Add tileset image - first param is the name used in Tiled
-    this.tileset = this.map.addTilesetImage("MainLevBuild", "tiles")!;
-
-    // Create layer from tilemap data
-    if (this.tileset) {
-      // First param is the layer name from Tiled
-      this.layer = this.map.createLayer("Tile Layer 1", this.tileset, 0, -250)!;
-
-      // Set depth to be above backgrounds but below game elements
-      this.layer.setDepth(45);
-
-      // Scale the tilemap up to 1.2
-      this.layer.setScale(1.2);
-    }
-  }
-
   // Enhanced wave completion text effects
   private showWaveCompletionEffects(
     timeBonus: number,
@@ -996,29 +750,14 @@ export default class MainScene extends Phaser.Scene {
 
     bonusTexts.forEach((textData, index) => {
       const yPos = this.cameras.main.height / 2 - 100 + index * 70;
-      const bonusText = this.add
-        .text(this.cameras.main.width / 2, yPos, textData.text, {
-          fontSize: "52px",
-          fontFamily: "Arial, sans-serif",
-          color: textData.color,
-          stroke: "#2c3e50",
-          strokeThickness: 8,
-          align: "center",
-          shadow: {
-            offsetX: 3,
-            offsetY: 3,
-            color: "#000",
-            blur: 8,
-            fill: true,
-          },
-        })
-        .setOrigin(0.5)
-        .setAlpha(0)
-        .setDepth(201);
+      const textContainer = this.createBitmapText(textData.text, 0, 0, 1.5);
+      textContainer.setX(-textContainer.width / 2);
+      textContainer.setY(yPos);
+      textContainer.setDepth(201);
 
       // Enhanced text animation
       this.tweens.add({
-        targets: bonusText,
+        targets: textContainer,
         alpha: { from: 0, to: 1 },
         scale: { from: 0.5, to: 1 },
         y: yPos - 30,
@@ -1028,7 +767,7 @@ export default class MainScene extends Phaser.Scene {
         onComplete: () => {
           // Add subtle floating effect
           this.tweens.add({
-            targets: bonusText,
+            targets: textContainer,
             y: yPos - 40,
             duration: 1500,
             ease: "Sine.easeInOut",
@@ -1039,18 +778,18 @@ export default class MainScene extends Phaser.Scene {
           // Fade out after delay
           this.time.delayedCall(2000, () => {
             this.tweens.add({
-              targets: bonusText,
+              targets: textContainer,
               alpha: 0,
               y: yPos - 60,
               scale: 0.8,
               duration: 500,
               ease: "Back.easeIn",
               onComplete: () => {
-                bonusText.destroy();
+                textContainer.destroy();
                 textsRemaining--;
 
                 if (textsRemaining === 0) {
-                  this.showNextWaveButton();
+                  //this.showNextWaveButton();
                 }
               },
             });
@@ -1074,5 +813,175 @@ export default class MainScene extends Phaser.Scene {
         panel.y = 16 + index * 80;
       }
     });
+  }
+
+  // Add after other methods
+  private setupBitmapFont() {
+    // Create character mapping lookup table
+    const chars = this.bitmapFontConfig.chars;
+    const firstRowEndIndex = ".1234567890AaaBbCc".length; // End of first row
+    const charsPerRow = 18; // Approximate number of characters per row after skipping empty frames
+    const rowOffset = 6 * 32; // Skip 6 full rows (each row is 32 pixels high)
+
+    for (let i = 0; i < chars.length; i++) {
+      if (i < firstRowEndIndex) {
+        // First row characters - add rowOffset to skip 6 rows
+        this.bitmapFontMap[chars[i]] =
+          i + this.bitmapFontConfig.startFrame + rowOffset;
+      } else {
+        // Second row and beyond - add an offset to jump to next row
+        const rowNumber = Math.floor(i / charsPerRow);
+        const extraOffset = rowNumber * (32 - charsPerRow); // Add extra frames to skip to next row
+        this.bitmapFontMap[chars[i]] =
+          i + this.bitmapFontConfig.startFrame + rowOffset + extraOffset;
+      }
+    }
+  }
+
+  private createBitmapText(
+    text: string,
+    x: number,
+    y: number,
+    scale: number = 1
+  ) {
+    // Return a Phaser Text object with no content as a placeholder
+    // that will contain our bitmap sprites
+    const container = this.add.container(x, y).setDepth(100);
+
+    // Store the text in a custom property for reference
+    container.setData("text", text);
+
+    // Render each character from the bitmap font
+    let xOffset = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+
+      if (char === " ") {
+        // Handle space character
+        xOffset += this.bitmapFontConfig.characterWidth * scale;
+        continue;
+      }
+
+      const frameIndex = this.bitmapFontMap[char];
+      if (frameIndex !== undefined) {
+        const charSprite = this.add
+          .sprite(xOffset, 0, "bitmapFont", frameIndex)
+          .setScale(scale)
+          .setOrigin(0, 0); // Set origin to top-left
+
+        container.add(charSprite);
+        xOffset +=
+          (this.bitmapFontConfig.characterWidth * 0.68 +
+            this.bitmapFontConfig.spacing.x) *
+          scale;
+      }
+    }
+
+    return container;
+  }
+
+  // Create a utility function to update text in bitmap containers
+  private updateBitmapText(
+    container: Phaser.GameObjects.Container,
+    newText: string
+  ) {
+    const scale = container.first
+      ? (container.first as Phaser.GameObjects.Sprite).scaleX
+      : 1;
+
+    // Clear existing sprites
+    container.removeAll(true);
+
+    // Add new sprites for the updated text
+    let xOffset = 0;
+    for (let i = 0; i < newText.length; i++) {
+      const char = newText[i];
+
+      if (char === " ") {
+        // Handle space character
+        xOffset += this.bitmapFontConfig.characterWidth * scale;
+        continue;
+      }
+
+      const frameIndex = this.bitmapFontMap[char];
+      if (frameIndex !== undefined) {
+        const charSprite = this.add
+          .sprite(xOffset, 0, "bitmapFont", frameIndex)
+          .setScale(scale)
+          .setOrigin(0, 0);
+
+        container.add(charSprite);
+        xOffset +=
+          (this.bitmapFontConfig.characterWidth * 0.5 +
+            this.bitmapFontConfig.spacing.x) *
+          scale;
+      }
+    }
+
+    // Update stored text
+    container.setData("text", newText);
+
+    return container;
+  }
+
+  // Use this wrapper for Text objects that need to be updated
+  private createUpdatableBitmapText(
+    text: string,
+    x: number,
+    y: number,
+    scale: number = 1
+  ) {
+    // Create a container to hold everything
+    const container = this.add.container(x, y);
+
+    // Create bitmap text inside the container
+    const bitmapContainer = this.createBitmapText(text, 0, 0, scale);
+    container.add(bitmapContainer);
+
+    // Create an invisible text object with the proper methods for compatibility
+    const textObj = this.add.text(0, 0, "", {
+      fontSize: "1px", // Minimal size
+      color: "#00000000", // Transparent
+    });
+    container.add(textObj);
+
+    // Store reference and override setText
+    container.setData("bitmapContainer", bitmapContainer);
+    container.setData("textObj", textObj);
+
+    // Add setText method to the container
+    (container as any).setText = (newText: string) => {
+      this.updateBitmapText(bitmapContainer, newText);
+      return container;
+    };
+
+    return container as unknown as Phaser.GameObjects.Text;
+  }
+
+  // For multiline text like instructions
+  private createMultilineBitmapText(
+    text: string,
+    x: number,
+    y: number,
+    scale: number = 1
+  ) {
+    const container = this.add.container(x, y);
+    const lines = text.split("\n");
+    const lineHeight = this.bitmapFontConfig.characterHeight * scale * 1.2;
+
+    lines.forEach((line, index) => {
+      const lineContainer = this.createBitmapText(
+        line,
+        0,
+        index * lineHeight,
+        scale
+      );
+      // Center the line
+      const lineWidth = lineContainer.getBounds().width;
+      lineContainer.setX(-lineWidth / 2);
+      container.add(lineContainer);
+    });
+
+    return container;
   }
 }
